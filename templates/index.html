@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Damage Detection AI</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(23, 32, 54, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #38bdf8;
+            --accent-secondary: #818cf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --green: #22c55e;
+            --amber: #f59e0b;
+            --red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(129, 140, 248, 0.12) 0px, transparent 50%);
+            background-attachment: fixed;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        /* Header Card */
+        .header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-text h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-text p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 700px;
+        }
+
+        .system-badge {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            color: #4ade80;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Layout Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-main);
+        }
+
+        .card-title i {
+            color: var(--accent-primary);
+        }
+
+        /* Upload Dropzone */
+        .dropzone {
+            border: 2px dashed rgba(56, 189, 248, 0.3);
+            border-radius: 16px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(56, 189, 248, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .dropzone i {
+            font-size: 3rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+        }
+
+        .dropzone p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .dropzone input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Controls */
+        .control-group {
+            margin-top: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-primary);
+        }
+
+        .btn-analyze {
+            width: 100%;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.6);
+        }
+
+        .btn-analyze:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Preview Area */
+        .preview-box {
+            margin-top: 1.5rem;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            display: none;
+            max-height: 260px;
+        }
+
+        .preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Results Box */
+        .result-badge-container {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .damage-badge {
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: white;
+            letter-spacing: 0.02em;
+        }
+
+        .confidence-val {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        /* Summary Box */
+        .summary-card {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 14px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .summary-card h4 {
+            font-size: 0.95rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+        }
+
+        .summary-card p {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .action-card {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            color: #e0f2fe;
+            margin-top: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        /* Bars */
+        .bar-group {
+            margin-bottom: 1rem;
+        }
+
+        .bar-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 0.35rem;
+            color: var(--text-muted);
+        }
+
+        .bar-bg {
+            background: rgba(255, 255, 255, 0.08);
+            height: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            width: 0%;
+            transition: width 0.6s ease;
+            border-radius: 10px;
+        }
+
+        /* Grad-CAM Section */
+        .gradcam-grid {
+            grid-column: span 2;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .gradcam-grid {
+                grid-column: span 1;
+            }
+        }
+
+        .image-trio {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .image-trio {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .img-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .img-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .img-card-caption {
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Loader */
+        .loader-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid rgba(56, 189, 248, 0.2);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-text">
+                <h1><i class="fa-solid fa-car-burst"></i> Vehicle Damage Detection AI</h1>
+                <p>AI-powered car damage classification (No Damage / Minor / Severe) with Grad-CAM heatmap explainability.</p>
+            </div>
+            <div class="system-badge">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>MobileNetV2 Active</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-grid">
+            <!-- Left Panel: Input -->
+            <div class="card" style="position: relative;">
+                <div class="loader-overlay" id="loader">
+                    <div class="spinner"></div>
+                    <p style="font-weight: 600; color: var(--accent-primary);">Analyzing damage features & computing Grad-CAM...</p>
+                </div>
+
+                <div class="card-title">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Upload Car Image</span>
+                </div>
+
+                <div class="dropzone" id="dropzone">
+                    <i class="fa-solid fa-image"></i>
+                    <p style="font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">Click or Drag & Drop Car Image</p>
+                    <p>Supports JPG, JPEG, PNG (max 10MB)</p>
+                    <input type="file" id="fileInput" accept="image/jpeg, image/jpg, image/png">
+                </div>
+
+                <div class="preview-box" id="previewBox">
+                    <img id="previewImg" src="" alt="Car Preview">
+                </div>
+
+                <div class="control-group">
+                    <label for="alphaSlider"><i class="fa-solid fa-fire"></i> Grad-CAM Heatmap Blend (Alpha): <span id="alphaVal">0.4</span></label>
+                    <div class="slider-row">
+                        <input type="range" id="alphaSlider" min="0.1" max="0.9" step="0.05" value="0.4">
+                    </div>
+                </div>
+
+                <button class="btn-analyze" id="analyzeBtn" disabled>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Analyze Damage</span>
+                </button>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div class="card" id="resultsCard">
+                <div class="card-title">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>AI Diagnostic Report</span>
+                </div>
+
+                <div id="placeholderState" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-car-side" style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <p>Upload a car photo and click <strong>Analyze Damage</strong> to view AI classification results and heatmap visualization.</p>
+                </div>
+
+                <div id="resultsState" style="display: none;">
+                    <div class="result-badge-container">
+                        <div>
+                            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.3rem;">Detected Severity</div>
+                            <div class="damage-badge" id="damageBadge">Minor Damage</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 0.3rem;">AI Confidence</div>
+                            <div class="confidence-val" id="confidenceVal">95.4%</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h4>Diagnostic Summary</h4>
+                        <p id="summaryText">Minor surface scratches and light dents detected on body panel.</p>
+                        <div class="action-card" id="actionText">
+                            <strong><i class="fa-solid fa-lightbulb"></i> Recommended Action:</strong> Cosmetic detail repair recommended.
+                        </div>
+                    </div>
+
+                    <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-main);">
+                        Class Probability Breakdown
+                    </div>
+                    <div id="probabilitiesContainer"></div>
+                </div>
+            </div>
+
+            <!-- Grad-CAM Visuals Row -->
+            <div class="card gradcam-grid" id="gradcamSection">
+                <div class="card-title">
+                    <i class="fa-solid fa-eye"></i>
+                    <span>Grad-CAM Visual Focus Regions</span>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+                    The heatmap highlights specific pixel regions in the car image that activated the neural network's damage decision.
+                </p>
+                <div class="image-trio">
+                    <div class="img-card">
+                        <img id="imgOriginal" src="" alt="Original Car Image">
+                        <div class="img-card-caption">Original Car Photo</div>
+                    </div>
+                    <div class="img-card">
+                        <img id="imgHeatmap" src="" alt="Grad-CAM Activation Heatmap">
+                        <div class="img-card-caption">Grad-CAM Heatmap Layer</div>
+                    </div>
+                    <div class="img-card">
+                        <img id="imgOverlay" src="" alt="Blended Heatmap Overlay">
+                        <div class="img-card-caption">Blended Visual Overlay</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const previewBox = document.getElementById('previewBox');
+        const previewImg = document.getElementById('previewImg');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const alphaSlider = document.getElementById('alphaSlider');
+        const alphaVal = document.getElementById('alphaVal');
+        const loader = document.getElementById('loader');
+
+        const placeholderState = document.getElementById('placeholderState');
+        const resultsState = document.getElementById('resultsState');
+        const gradcamSection = document.getElementById('gradcamSection');
+
+        const damageBadge = document.getElementById('damageBadge');
+        const confidenceVal = document.getElementById('confidenceVal');
+        const summaryText = document.getElementById('summaryText');
+        const actionText = document.getElementById('actionText');
+        const probabilitiesContainer = document.getElementById('probabilitiesContainer');
+
+        const imgOriginal = document.getElementById('imgOriginal');
+        const imgHeatmap = document.getElementById('imgHeatmap');
+        const imgOverlay = document.getElementById('imgOverlay');
+
+        let selectedFile = null;
+
+        alphaSlider.addEventListener('input', (e) => {
+            alphaVal.textContent = e.target.value;
+        });
+
+        // File selection handling
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload a valid JPG or PNG image file.');
+                return;
+            }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewBox.style.display = 'block';
+                analyzeBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Drag and drop handlers
+        ['dragenter', 'dragover'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Analyze button click
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            loader.style.display = 'flex';
+            analyzeBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('alpha', alphaSlider.value);
+
+            try {
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                loader.style.display = 'none';
+                analyzeBtn.disabled = false;
+
+                if (!res.ok) {
+                    alert(data.error || 'Failed to analyze image.');
+                    return;
+                }
+
+                renderResults(data);
+
+            } catch (err) {
+                loader.style.display = 'none';
+                analyzeBtn.disabled = false;
+                alert('Network error occurred while connecting to server.');
+                console.error(err);
+            }
+        });
+
+        function renderResults(data) {
+            placeholderState.style.display = 'none';
+            resultsState.style.display = 'block';
+            gradcamSection.style.display = 'block';
+
+            // Damage Badge Styling
+            damageBadge.textContent = data.display_name;
+            damageBadge.style.backgroundColor = data.badge_color;
+
+            confidenceVal.textContent = data.confidence_percentage;
+            summaryText.textContent = data.summary;
+            actionText.innerHTML = `<strong><i class="fa-solid fa-lightbulb"></i> Recommended Action:</strong> ${data.action}`;
+
+            // Render Class Probabilities
+            probabilitiesContainer.innerHTML = '';
+            const classDisplayNames = {
+                'no_damage': 'No Damage',
+                'minor_damage': 'Minor Damage',
+                'severe_damage': 'Severe Damage'
+            };
+
+            for (const [key, prob] of Object.entries(data.probabilities)) {
+                const name = classDisplayNames[key] || key;
+                const pct = (prob * 100).toFixed(1);
+                
+                const group = document.createElement('div');
+                group.className = 'bar-group';
+                group.innerHTML = `
+                    <div class="bar-info">
+                        <span>${name}</span>
+                        <span>${pct}%</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                probabilitiesContainer.appendChild(group);
+            }
+
+            // Render Images
+            imgOriginal.src = data.original_image;
+            imgHeatmap.src = data.gradcam_heatmap;
+            imgOverlay.src = data.gradcam_overlay;
+
+            // Smooth scroll to results on mobile
+            gradcamSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

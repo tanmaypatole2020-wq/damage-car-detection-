@@ -1,0 +1,28 @@
+# Python Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Raw and Generated Datasets (Excluded from git tracking)
+data/
+
+# Temporary and Scratch Reports
+reports/*.tmp
+reports/*.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE Settings
+.vscode/
+.idea/
+*.swp
