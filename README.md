@@ -2,52 +2,77 @@
 
 An offline Deep Learning application that inspects car photos and classifies vehicle exterior damage severity into **No Damage**, **Minor Damage**, and **Severe Damage** with **Grad-CAM** visual explainability heatmaps.
 
-Built with **Flask**, **TensorFlow/Keras (MobileNetV2)**, and clean **HTML5/CSS3/Vanilla JS** with zero external CDN dependencies. Supports desktop browsers and **mobile phones (iOS Safari & Android Chrome)**.
-
-> 🚀 **Live Demo Links**:  
-> - **Desktop Laptop**: **[http://127.0.0.1:5000](http://127.0.0.1:5000)** *(or [http://localhost:5000](http://localhost:5000))*  
-> - **Mobile Phones (iOS & Android)**: **`http://<laptop-ip>:5000`** *(Click "📱 Open on Phone" on the web page to scan the instant QR code)*  
-> - **Internet / Mobile Data (4G/5G)**: Run `run_live_tunnel.bat` for an instant public HTTPS link.
+Built with **Flask**, **TensorFlow/Keras (MobileNetV2)**, and clean **HTML5/CSS3/Vanilla JS** with zero external CDN dependencies. Supports desktop browsers, **tablets, and mobile phones (iOS Safari & Android Chrome)**.
 
 ---
 
-## 📱 Mobile Phone Access (iOS & Android)
+## 🌐 Live Demo Links (Works on Any Device)
 
-You can use this app directly from your smartphone to snap car photos with your camera and inspect damage:
+| Demo Method | Target Device | Access URL / Instructions |
+| :--- | :--- | :--- |
+| **Custom Named Public Demo** | **ANY Device** (iPhone, Android, iPad, PC, 4G/5G, Worldwide) | **`https://vehicle-damage-ai.loca.lt`** *(or any custom name)*<br>Run `run_live_tunnel.bat` to choose your own name! |
+| **Local Laptop Browser** | Host Computer | **[http://127.0.0.1:5000](http://127.0.0.1:5000)** *(or [http://localhost:5000](http://localhost:5000))* |
+| **Direct Local Wi-Fi** | Smartphones & Tablets on same Wi-Fi | **`http://<laptop-ip>:5000`** *(Scan instant QR Code in app)* |
 
-1. **Same Wi-Fi Network**:
-   - Connect your iPhone or Android phone to the same Wi-Fi as your laptop.
-   - On your laptop, click the **"📱 Open on Phone"** button in the top header.
-   - Scan the displayed **QR Code** using your phone camera (iOS Camera or Android Google Lens / Chrome), or navigate to:
+---
+
+## 🎯 Name Your Demo Link Any Name
+
+You can customize the public demo link to **any name you want** (e.g. `car-damage-ai`, `tanmay-vehicle-detector`, `vehicle-damage-demo`, etc.):
+
+1. **Option A: Interactive Prompt**  
+   Double-click `run_live_tunnel.bat` on Windows.  
+   When prompted:
+   ```text
+   Enter any custom name for your demo link (default: vehicle-damage-ai): <TYPE_ANY_NAME>
+   ```
+2. **Option B: One-Line Command**  
+   Run from PowerShell or Command Prompt:
+   ```cmd
+   run_live_tunnel.bat your-custom-name
+   ```
+3. **Instant Access**:
+   - The script automatically displays your link:
      ```text
-     http://192.168.10.12:5000
+     https://your-custom-name.loca.lt
      ```
-2. **Camera Upload**:
-   - Tap the upload area on your phone to either select a picture from your gallery or take a live photo of a car using your phone's camera.
-3. **Over Cellular / Remote Internet (4G/5G)**:
-   - Double-click `run_live_tunnel.bat` to generate a public HTTPS tunnel link (e.g. `https://xxxx.loca.lt`) accessible from anywhere in the world on any device.
+   - Fetches your **Tunnel IP Password** and automatically copies it to your clipboard (`clip.exe`)!
+   - Saves `static/tunnel_info.json` and creates a desktop shortcut `Live_Public_Demo.url`.
 
 ---
 
-## 1. Setup
+## 📱 How to Open on Any Device (Phones, Tablets, Remote PCs)
 
-### Prerequisites
-- **Python 3.10+** (Python 3.11 recommended)
-- **Windows, macOS, or Linux**
+### Method 1: Worldwide Public Link (Cellular 4G/5G, iPhone & Android)
+1. Ensure `run_web.bat` (or `python app.py`) and `run_live_tunnel.bat` are running.
+2. Send or open your named link (e.g. `https://vehicle-damage-ai.loca.lt`) on **any device anywhere in the world**.
+3. When prompted on the first visit for **"Tunnel Password"**, paste your IP password (copied to clipboard by `run_live_tunnel.bat`).
+4. Click **"Submit"** — the dashboard opens instantly!
 
-### Automated Setup
+### Method 2: Instant QR Code Scan
+1. Open the dashboard on your laptop: [http://127.0.0.1:5000](http://127.0.0.1:5000).
+2. Click **"📱 Open on Phone / Any Device"** in the top header.
+3. Switch between **🌐 Public Demo Link** (for mobile data / remote users) and **📶 Local Wi-Fi** (for same-room LAN testing).
+4. Point your iPhone Camera or Android Google Lens at the on-screen QR Code to open it immediately.
+5. Tap **"📋 Copy Password"** if prompted for tunnel verification.
+
+---
+
+## ⚙️ Quick Setup & Run
+
+### 1. Automated Setup (Recommended)
 - **Windows**: Double-click `run.bat` or run:
   ```cmd
   run.bat
   ```
-- **macOS / Linux**: Make executable and run:
+- **macOS / Linux**:
   ```bash
   chmod +x run.sh
   ./run.sh
   ```
-The script will automatically create a virtual environment (`.venv`), install all dependencies from `requirements.txt`, and launch the web app.
+The script automatically provisions a Python virtual environment (`.venv`), installs dependencies from `requirements.txt`, and launches the multi-device server.
 
-### Manual Setup (Optional)
+### 2. Manual Setup
 ```bash
 # 1. Create and activate virtual environment
 python -m venv .venv
@@ -59,42 +84,44 @@ source .venv/bin/activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
-```
 
----
-
-## 2. Run
-
-Start the local multi-device Flask application:
-
-```bash
+# 3. Start server
 python app.py
 ```
 
-- Server starts on `0.0.0.0:5000`
-- Opens automatically in your laptop's default browser at **http://127.0.0.1:5000**
-- Accessible across your local Wi-Fi from iPhones, Androids, and tablets.
-
 ---
 
-## 3. How to Demo It
+## 🔬 How to Demo & Test
 
-1. **Open the App**:
-   - Laptop: **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
-   - Phone: **`http://<laptop-ip>:5000`** or scan the QR code.
-2. **Upload an Image**:
-   - Drag and drop or take a photo with your mobile camera.
-   - You can also test with samples in the `samples/` directory:
+1. **Upload Vehicle Photo**:
+   - **On Phone**: Tap the drop zone to snap a live photo with your camera or select from photo library.
+   - **On Desktop**: Drag-and-drop any image, or use ready samples:
      - `samples/damaged_car.jpg` (Damaged vehicle)
      - `samples/undamaged_car.jpg` (Clean vehicle)
      - `samples/car_alpha.png` (PNG with transparency)
-3. **Analyze Damage**:
-   - Click/tap **"Analyze Damage"**.
-4. **Inspect the AI Results**:
-   - **Severity Badge**: Color-coded diagnosis (🟢 No Damage, 🟡 Minor Damage, 🔴 Severe Damage).
-   - **Confidence Score**: Model confidence percentage.
-   - **Grad-CAM Heatmap**: Side-by-side (or stacked on mobile) view comparing photo with AI focus areas.
-   - **Probability Breakdown**: Distribution across all 3 damage classes with animated bars.
-   - **Suggested Action**: Practical recommendation for vehicle appraisal or repair.
-5. **Reset**:
-   - Tap **"Analyze another image"** to test a new vehicle.
+2. **Click "Analyze Damage"**:
+   - MobileNetV2 evaluates the photo and extracts Grad-CAM heatmaps.
+3. **Inspect Output**:
+   - **Diagnosis Badge**: 🟢 No Damage, 🟡 Minor Damage, 🔴 Severe Damage.
+   - **Confidence Score**: Prediction confidence percentage.
+   - **Grad-CAM Heatmap**: Side-by-side / stacked overlay showing AI focus zones.
+   - **Class Probabilities**: Visual bar charts for all 3 categories.
+   - **Action Recommendation**: Tailored repair and appraisal advice.
+
+---
+
+## 🧪 Verification & Testing Suite
+
+Run all validation tests:
+
+```cmd
+# 1. Flask API test suite (7 tests)
+python test_server_api.py
+
+# 2. Edge case inference tests (5 samples)
+python test_edge_cases.py
+
+# 3. Model validation & metrics evaluation
+python src/evaluate.py
+```
+All tests run with **zero errors**.

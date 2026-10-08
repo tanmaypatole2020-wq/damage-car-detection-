@@ -79,3 +79,8 @@ MAX_IMAGE_SIZE_MB: int = 10
 ALLOWED_IMAGE_EXTENSIONS: List[str] = [".jpg", ".jpeg", ".png", ".webp"]
 MIN_IMAGE_DIMENSION: int = 32
 CONFIDENCE_THRESHOLD: float = 0.50
+
+# Live Demo & Tunnel Settings
+DEFAULT_DEMO_SUBDOMAIN: str = "vehicle-damage-ai"
+TUNNEL_INFO_PATH: Path = PROJECT_ROOT / "static" / "tunnel_info.json"
+

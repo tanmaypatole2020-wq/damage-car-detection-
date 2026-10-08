@@ -12,11 +12,9 @@
     <header class="app-header">
       <div class="header-badges">
         <span class="header-badge">AI Diagnostic System</span>
-        {% if mobile_url %}
         <button type="button" class="mobile-access-trigger" id="openMobileModalBtn">
-          📱 Open on Phone (iOS & Android)
+          📱 Open on Phone / Any Device
         </button>
-        {% endif %}
       </div>
       <h1 class="header-title">Vehicle Damage Detection</h1>
       <p class="header-subtitle">
@@ -47,7 +45,7 @@
       <!-- Upload View -->
       <section class="upload-section" id="uploadSection">
         <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Upload car image">
-          <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="file-input">
+          <input type="file" id="fileInput" accept="image/*,.jpg,.jpeg,.png,.webp" class="file-input">
           
           <div class="drop-zone-content" id="dropZonePrompt">
             <div class="upload-icon-bubble">
@@ -163,32 +161,92 @@
       </section>
     </main>
 
-    <!-- Mobile Access Modal -->
-    {% if mobile_url %}
+    <!-- Mobile / Any Device Access Modal -->
     <div class="modal-backdrop hidden" id="mobileModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 id="modalTitle" class="modal-title">📱 Open on Mobile Phone</h3>
+          <h3 id="modalTitle" class="modal-title">📱 Open on Phone or Any Device</h3>
           <button type="button" class="modal-close" id="closeMobileModalBtn" aria-label="Close modal">&times;</button>
         </div>
+
+        <!-- Mode Tabs -->
+        <div class="modal-tabs">
+          <button type="button" class="modal-tab-btn active" id="tabPublicBtn" data-target="panelPublic">
+            🌐 Public Demo Link (Any Device / 4G/5G)
+          </button>
+          <button type="button" class="modal-tab-btn" id="tabLocalBtn" data-target="panelLocal">
+            📶 Local Wi-Fi Network
+          </button>
+        </div>
+
         <div class="modal-body">
-          <p class="modal-instruction">Scan with your iPhone (Safari/Camera) or Android (Chrome/Camera):</p>
-          {% if mobile_qr %}
-          <div class="qr-container">
-            <img src="{{ mobile_qr }}" alt="Scan QR code to open mobile app" class="qr-image">
+          <!-- Panel 1: Worldwide Public Demo Link -->
+          <div class="modal-panel" id="panelPublic">
+            <p class="modal-instruction">
+              Scan with your iPhone / Android camera or open this link on <strong>any device in the world</strong>:
+            </p>
+
+            {% if public_qr %}
+            <div class="qr-container">
+              <img src="{{ public_qr }}" alt="Scan QR code for public demo" class="qr-image" id="publicQrImage">
+            </div>
+            {% endif %}
+
+            <div class="modal-link-box">
+              <span class="modal-link-label">Live Public Demo URL:</span>
+              <div class="url-copy-row">
+                <a href="{{ public_url }}" target="_blank" class="modal-link-url" id="publicLinkUrl">{{ public_url }}</a>
+                <button type="button" class="btn-copy-small" id="copyPublicUrlBtn" title="Copy Demo URL">Copy URL</button>
+              </div>
+            </div>
+
+            {% if tunnel_info and tunnel_info.password %}
+            <div class="password-box">
+              <div class="password-label-group">
+                <span class="password-title">🔑 Tunnel Access Password:</span>
+                <span class="password-value" id="tunnelPasswordVal">{{ tunnel_info.password }}</span>
+              </div>
+              <button type="button" class="btn-copy-action" id="copyPasswordBtn">
+                📋 Copy Password
+              </button>
+            </div>
+            <p class="modal-tip">
+              👉 <em>On your phone's first visit, tap "Submit" after pasting this password to open the app.</em>
+            </p>
+            {% else %}
+            <p class="modal-tip">
+              💡 <em>To change the link name or activate live public internet access, double-click <code>run_live_tunnel.bat</code>.</em>
+            </p>
+            {% endif %}
           </div>
-          {% endif %}
-          <div class="modal-link-box">
-            <span class="modal-link-label">Or type this link in your phone browser:</span>
-            <a href="{{ mobile_url }}" target="_blank" class="modal-link-url" id="mobileLinkUrl">{{ mobile_url }}</a>
-          </div>
-          <div class="modal-note">
-            💡 <strong>Requirement:</strong> Ensure your phone is connected to the same Wi-Fi network as this computer.
+
+          <!-- Panel 2: Local Wi-Fi Network -->
+          <div class="modal-panel hidden" id="panelLocal">
+            <p class="modal-instruction">
+              Connect your phone to the <strong>same Wi-Fi network</strong> as your laptop:
+            </p>
+
+            {% if mobile_qr %}
+            <div class="qr-container">
+              <img src="{{ mobile_qr }}" alt="Scan QR code for local Wi-Fi" class="qr-image">
+            </div>
+            {% endif %}
+
+            <div class="modal-link-box">
+              <span class="modal-link-label">Local Wi-Fi Address:</span>
+              <div class="url-copy-row">
+                <a href="{{ mobile_url }}" target="_blank" class="modal-link-url" id="mobileLinkUrl">{{ mobile_url }}</a>
+                <button type="button" class="btn-copy-small" id="copyLocalUrlBtn" title="Copy Local URL">Copy URL</button>
+              </div>
+            </div>
+
+            <div class="modal-note">
+              💡 <strong>Direct LAN:</strong> Works instantly with zero internet usage when connected to your home/office Wi-Fi.
+            </div>
           </div>
         </div>
       </div>
     </div>
-    {% endif %}
 
     <!-- Footer -->
     <footer class="app-footer">

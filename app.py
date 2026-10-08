@@ -7,7 +7,9 @@ Runs entirely offline with zero external cloud dependencies.
 
 import base64
 import io
+import json
 import logging
+import os
 from pathlib import Path
 import socket
 import sys
@@ -43,6 +45,16 @@ app.config["MAX_CONTENT_LENGTH"] = config.MAX_IMAGE_SIZE_MB * 1024 * 1024
 predictor = DamagePredictor()
 
 
+@app.after_request
+def add_cors_and_tunnel_headers(response):
+    """Enable CORS and bypass localtunnel reminder for seamless multi-device usage."""
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Bypass-Tunnel-Reminder"
+    response.headers["Bypass-Tunnel-Reminder"] = "true"
+    return response
+
+
 def get_local_ip() -> str:
     """Finds the local network IPv4 address of this machine."""
     try:
@@ -53,6 +65,28 @@ def get_local_ip() -> str:
         return ip
     except Exception:
         return "127.0.0.1"
+
+
+def get_tunnel_info() -> dict:
+    """Reads live public tunnel configuration if active or returns defaults."""
+    default_subdomain = os.environ.get("DEMO_SUBDOMAIN", config.DEFAULT_DEMO_SUBDOMAIN)
+    info = {
+        "url": f"https://{default_subdomain}.loca.lt",
+        "subdomain": default_subdomain,
+        "password": "",
+        "active": False,
+    }
+    if config.TUNNEL_INFO_PATH.exists():
+        try:
+            with open(config.TUNNEL_INFO_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                info["url"] = data.get("url", info["url"])
+                info["subdomain"] = data.get("subdomain", info["subdomain"])
+                info["password"] = data.get("password", "")
+                info["active"] = True
+        except Exception as e:
+            logger.warning(f"Could not load tunnel info: {e}")
+    return info
 
 
 def generate_qr_code_base64(url: str) -> str:
@@ -93,12 +127,19 @@ def index():
     mobile_url = f"http://{local_ip}:5000"
     mobile_qr = generate_qr_code_base64(mobile_url)
 
+    tunnel_info = get_tunnel_info()
+    public_url = tunnel_info["url"]
+    public_qr = generate_qr_code_base64(public_url)
+
     return render_template(
         "index.html",
         model_ready=model_ready,
         mobile_url=mobile_url,
         mobile_qr=mobile_qr,
         local_ip=local_ip,
+        public_url=public_url,
+        public_qr=public_qr,
+        tunnel_info=tunnel_info,
     )
 
 
@@ -262,17 +303,23 @@ def open_browser():
 
 if __name__ == "__main__":
     local_ip = get_local_ip()
-    print("\n" + "=" * 65)
-    print("  VEHICLE DAMAGE DETECTION AI - FLASK MULTI-DEVICE SERVER")
-    print("=" * 65)
-    print(f"  Laptop Browser  : http://127.0.0.1:5000  (or localhost:5000)")
-    print(f"  Mobile Phone    : http://{local_ip}:5000  (iOS Safari & Android)")
-    print("  Model Status    :", "Ready (MobileNetV2)" if predictor.is_ready() else "Not Found")
-    print("  Note: Connect phone to the same Wi-Fi network as this laptop.")
-    print("=" * 65 + "\n")
+    tunnel_info = get_tunnel_info()
+
+    print("\n" + "=" * 68)
+    print("  VEHICLE DAMAGE DETECTION AI - MULTI-DEVICE DASHBOARD SERVER")
+    print("=" * 68)
+    print(f"  Laptop Browser   : http://127.0.0.1:5000  (or localhost:5000)")
+    print(f"  Local Wi-Fi      : http://{local_ip}:5000  (iOS Safari & Android)")
+    print(f"  Public Demo Link : {tunnel_info['url']}  (Any Device Worldwide / 4G/5G)")
+    if tunnel_info.get("password"):
+        print(f"  Tunnel Password  : {tunnel_info['password']}")
+    print("  Model Status     :", "Ready (MobileNetV2)" if predictor.is_ready() else "Not Found")
+    print("  Multi-Device     : iPhone, Android, Tablet, PC & Remote Sharing Ready")
+    print("=" * 68 + "\n")
 
     # Launch browser only once in a timer thread
     threading.Timer(1.25, open_browser).start()
 
     # Bind to 0.0.0.0 to accept connections from iPhones and Androids on the local network
     app.run(host="0.0.0.0", port=5000, debug=False)
+

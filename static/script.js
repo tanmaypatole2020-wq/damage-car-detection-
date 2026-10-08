@@ -217,6 +217,9 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/predict", {
         method: "POST",
+        headers: {
+          "Bypass-Tunnel-Reminder": "true",
+        },
         body: formData,
       });
 
@@ -312,7 +315,88 @@ document.addEventListener("DOMContentLoaded", () => {
   resetBtn.addEventListener("click", resetToUpload);
   bottomResetBtn.addEventListener("click", resetToUpload);
 
-  // Mobile Modal Controls
+  // Modal Tab Switching
+  const tabPublicBtn = document.getElementById("tabPublicBtn");
+  const tabLocalBtn = document.getElementById("tabLocalBtn");
+  const panelPublic = document.getElementById("panelPublic");
+  const panelLocal = document.getElementById("panelLocal");
+
+  if (tabPublicBtn && tabLocalBtn && panelPublic && panelLocal) {
+    tabPublicBtn.addEventListener("click", () => {
+      tabPublicBtn.classList.add("active");
+      tabLocalBtn.classList.remove("active");
+      panelPublic.classList.remove("hidden");
+      panelLocal.classList.add("hidden");
+    });
+
+    tabLocalBtn.addEventListener("click", () => {
+      tabLocalBtn.classList.add("active");
+      tabPublicBtn.classList.remove("active");
+      panelLocal.classList.remove("hidden");
+      panelPublic.classList.add("hidden");
+    });
+  }
+
+  // Clipboard Copy Helper
+  function copyTextToClipboard(text, buttonEl, successText = "Copied!") {
+    if (!text || !buttonEl) return;
+    const originalText = buttonEl.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        buttonEl.textContent = successText;
+        setTimeout(() => {
+          buttonEl.textContent = originalText;
+        }, 2200);
+      }).catch(() => fallbackCopy(text, buttonEl, originalText, successText));
+    } else {
+      fallbackCopy(text, buttonEl, originalText, successText);
+    }
+  }
+
+  function fallbackCopy(text, buttonEl, originalText, successText) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      buttonEl.textContent = successText;
+      setTimeout(() => {
+        buttonEl.textContent = originalText;
+      }, 2200);
+    } catch (e) {
+      console.warn("Could not copy:", e);
+    }
+    document.body.removeChild(ta);
+  }
+
+  const copyPublicUrlBtn = document.getElementById("copyPublicUrlBtn");
+  const publicLinkUrl = document.getElementById("publicLinkUrl");
+  if (copyPublicUrlBtn && publicLinkUrl) {
+    copyPublicUrlBtn.addEventListener("click", () => {
+      copyTextToClipboard(publicLinkUrl.href, copyPublicUrlBtn);
+    });
+  }
+
+  const copyLocalUrlBtn = document.getElementById("copyLocalUrlBtn");
+  const mobileLinkUrl = document.getElementById("mobileLinkUrl");
+  if (copyLocalUrlBtn && mobileLinkUrl) {
+    copyLocalUrlBtn.addEventListener("click", () => {
+      copyTextToClipboard(mobileLinkUrl.href, copyLocalUrlBtn);
+    });
+  }
+
+  const copyPasswordBtn = document.getElementById("copyPasswordBtn");
+  const tunnelPasswordVal = document.getElementById("tunnelPasswordVal");
+  if (copyPasswordBtn && tunnelPasswordVal) {
+    copyPasswordBtn.addEventListener("click", () => {
+      copyTextToClipboard(tunnelPasswordVal.textContent.trim(), copyPasswordBtn, "✓ Password Copied!");
+    });
+  }
+
+  // Mobile / Any Device Modal Controls
   if (openMobileModalBtn && mobileModal) {
     openMobileModalBtn.addEventListener("click", () => {
       mobileModal.classList.remove("hidden");
@@ -337,3 +421,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
