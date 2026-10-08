@@ -210,9 +210,8 @@ Visual plots generated and saved:
 
 1. **Push this repository to GitHub**:
    ```bash
-   git add .
-   git commit -m "Initial commit of Vehicle Damage Detection project"
-   git remote add origin https://github.com/<your-username>/vehicle-damage-detection.git
+   git remote add origin https://github.com/tanmaypatole2020-wq/damage-car-detection-.git
+   git branch -M main
    git push -u origin main
    ```
 2. Go to **[share.streamlit.io](https://share.streamlit.io/)** and sign in with GitHub.
