@@ -10,7 +10,14 @@
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
-      <div class="header-badge">AI Diagnostic System</div>
+      <div class="header-badges">
+        <span class="header-badge">AI Diagnostic System</span>
+        {% if mobile_url %}
+        <button type="button" class="mobile-access-trigger" id="openMobileModalBtn">
+          📱 Open on Phone (iOS & Android)
+        </button>
+        {% endif %}
+      </div>
       <h1 class="header-title">Vehicle Damage Detection</h1>
       <p class="header-subtitle">
         Upload a car photo to instantly analyze exterior damage severity and inspect affected body panels with Grad-CAM heatmaps.
@@ -51,7 +58,7 @@
               </svg>
             </div>
             <h2 class="drop-title">Drop your car image here, or <span class="highlight-text">browse</span></h2>
-            <p class="drop-hint">Supports JPG, PNG, WEBP &bull; Max 10 MB</p>
+            <p class="drop-hint">Supports JPG, PNG, WEBP &bull; Max 10 MB &bull; Camera Upload</p>
           </div>
 
           <!-- Preview Container -->
@@ -156,9 +163,36 @@
       </section>
     </main>
 
+    <!-- Mobile Access Modal -->
+    {% if mobile_url %}
+    <div class="modal-backdrop hidden" id="mobileModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modalTitle" class="modal-title">📱 Open on Mobile Phone</h3>
+          <button type="button" class="modal-close" id="closeMobileModalBtn" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-instruction">Scan with your iPhone (Safari/Camera) or Android (Chrome/Camera):</p>
+          {% if mobile_qr %}
+          <div class="qr-container">
+            <img src="{{ mobile_qr }}" alt="Scan QR code to open mobile app" class="qr-image">
+          </div>
+          {% endif %}
+          <div class="modal-link-box">
+            <span class="modal-link-label">Or type this link in your phone browser:</span>
+            <a href="{{ mobile_url }}" target="_blank" class="modal-link-url" id="mobileLinkUrl">{{ mobile_url }}</a>
+          </div>
+          <div class="modal-note">
+            💡 <strong>Requirement:</strong> Ensure your phone is connected to the same Wi-Fi network as this computer.
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Footer -->
     <footer class="app-footer">
-      <p>Built with AI/ML &bull; MobileNetV2 &bull; Grad-CAM Explainability</p>
+      <p>Built with AI/ML &bull; MobileNetV2 &bull; iOS & Android Ready</p>
     </footer>
   </div>
 

@@ -1,12 +1,31 @@
 # 🚗 Vehicle Damage Detection AI
 
-An offline, local Deep Learning application that inspects car photos and classifies vehicle exterior damage severity into **No Damage**, **Minor Damage**, and **Severe Damage** with **Grad-CAM** visual explainability heatmaps.
+An offline Deep Learning application that inspects car photos and classifies vehicle exterior damage severity into **No Damage**, **Minor Damage**, and **Severe Damage** with **Grad-CAM** visual explainability heatmaps.
 
-Built with **Flask**, **TensorFlow/Keras (MobileNetV2)**, and clean **HTML5/CSS3/Vanilla JS** with zero external CDN dependencies.
+Built with **Flask**, **TensorFlow/Keras (MobileNetV2)**, and clean **HTML5/CSS3/Vanilla JS** with zero external CDN dependencies. Supports desktop browsers and **mobile phones (iOS Safari & Android Chrome)**.
 
-> 🚀 **Live Local Demo Link**:  
-> 👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**  
-> *(Ensure `python app.py` is running, or double-click `Launch_App.url` / `open_app.bat`)*
+> 🚀 **Live Demo Links**:  
+> - **Desktop Laptop**: **[http://127.0.0.1:5000](http://127.0.0.1:5000)** *(or [http://localhost:5000](http://localhost:5000))*  
+> - **Mobile Phones (iOS & Android)**: **`http://<laptop-ip>:5000`** *(Click "📱 Open on Phone" on the web page to scan the instant QR code)*  
+> - **Internet / Mobile Data (4G/5G)**: Run `run_live_tunnel.bat` for an instant public HTTPS link.
+
+---
+
+## 📱 Mobile Phone Access (iOS & Android)
+
+You can use this app directly from your smartphone to snap car photos with your camera and inspect damage:
+
+1. **Same Wi-Fi Network**:
+   - Connect your iPhone or Android phone to the same Wi-Fi as your laptop.
+   - On your laptop, click the **"📱 Open on Phone"** button in the top header.
+   - Scan the displayed **QR Code** using your phone camera (iOS Camera or Android Google Lens / Chrome), or navigate to:
+     ```text
+     http://192.168.10.12:5000
+     ```
+2. **Camera Upload**:
+   - Tap the upload area on your phone to either select a picture from your gallery or take a live photo of a car using your phone's camera.
+3. **Over Cellular / Remote Internet (4G/5G)**:
+   - Double-click `run_live_tunnel.bat` to generate a public HTTPS tunnel link (e.g. `https://xxxx.loca.lt`) accessible from anywhere in the world on any device.
 
 ---
 
@@ -46,36 +65,36 @@ pip install -r requirements.txt
 
 ## 2. Run
 
-Start the local Flask application:
+Start the local multi-device Flask application:
 
 ```bash
 python app.py
 ```
 
-- Server starts at **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
-- Your default web browser opens automatically.
-- Or double-click **`Launch_App.url`** or **`open_app.bat`** anytime to jump straight into the running app.
-- Completely offline: no Node, no build step, no CDN libraries, and no cloud deployment required.
+- Server starts on `0.0.0.0:5000`
+- Opens automatically in your laptop's default browser at **http://127.0.0.1:5000**
+- Accessible across your local Wi-Fi from iPhones, Androids, and tablets.
 
 ---
 
 ## 3. How to Demo It
 
 1. **Open the App**:
-   - Navigate to **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
+   - Laptop: **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
+   - Phone: **`http://<laptop-ip>:5000`** or scan the QR code.
 2. **Upload an Image**:
-   - Drag and drop a vehicle exterior photo or click the upload box to browse.
-   - You can test with ready-made photos in the `samples/` directory:
+   - Drag and drop or take a photo with your mobile camera.
+   - You can also test with samples in the `samples/` directory:
      - `samples/damaged_car.jpg` (Damaged vehicle)
      - `samples/undamaged_car.jpg` (Clean vehicle)
      - `samples/car_alpha.png` (PNG with transparency)
-3. **Review Preview & Analyze**:
-   - Check the instant image preview and click **"Analyze Damage"**.
+3. **Analyze Damage**:
+   - Click/tap **"Analyze Damage"**.
 4. **Inspect the AI Results**:
    - **Severity Badge**: Color-coded diagnosis (🟢 No Damage, 🟡 Minor Damage, 🔴 Severe Damage).
-   - **Confidence Score**: Model confidence percentage (warns if under 50%).
-   - **Grad-CAM Heatmap**: Side-by-side view comparing original photo with AI activation regions.
-   - **Probability Breakdown**: Real-time distribution across all 3 damage classes.
+   - **Confidence Score**: Model confidence percentage.
+   - **Grad-CAM Heatmap**: Side-by-side (or stacked on mobile) view comparing photo with AI focus areas.
+   - **Probability Breakdown**: Distribution across all 3 damage classes with animated bars.
    - **Suggested Action**: Practical recommendation for vehicle appraisal or repair.
-5. **Analyze Another Image**:
-   - Click **"Analyze another image"** to reset and test a new photo.
+5. **Reset**:
+   - Tap **"Analyze another image"** to test a new vehicle.

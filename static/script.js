@@ -33,6 +33,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetBtn = document.getElementById("resetBtn");
   const bottomResetBtn = document.getElementById("bottomResetBtn");
 
+  const openMobileModalBtn = document.getElementById("openMobileModalBtn");
+  const closeMobileModalBtn = document.getElementById("closeMobileModalBtn");
+  const mobileModal = document.getElementById("mobileModal");
+
   // Configuration & State
   const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
   const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
@@ -307,4 +311,29 @@ document.addEventListener("DOMContentLoaded", () => {
   // Reset Buttons
   resetBtn.addEventListener("click", resetToUpload);
   bottomResetBtn.addEventListener("click", resetToUpload);
+
+  // Mobile Modal Controls
+  if (openMobileModalBtn && mobileModal) {
+    openMobileModalBtn.addEventListener("click", () => {
+      mobileModal.classList.remove("hidden");
+    });
+
+    if (closeMobileModalBtn) {
+      closeMobileModalBtn.addEventListener("click", () => {
+        mobileModal.classList.add("hidden");
+      });
+    }
+
+    mobileModal.addEventListener("click", (e) => {
+      if (e.target === mobileModal) {
+        mobileModal.classList.add("hidden");
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !mobileModal.classList.contains("hidden")) {
+        mobileModal.classList.add("hidden");
+      }
+    });
+  }
 });

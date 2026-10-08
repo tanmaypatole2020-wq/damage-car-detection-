@@ -1,13 +1,15 @@
 """
 Vehicle Damage Detection - Flask Application
 Serves a lightweight local web dashboard for vehicle damage analysis and Grad-CAM interpretability.
-No Streamlit, no cloud dependencies. Runs entirely offline on localhost.
+Accessible locally and over Wi-Fi on Mobile Phones (iOS Safari & Android Chrome).
+Runs entirely offline with zero external cloud dependencies.
 """
 
 import base64
 import io
 import logging
 from pathlib import Path
+import socket
 import sys
 import threading
 import webbrowser
@@ -41,6 +43,39 @@ app.config["MAX_CONTENT_LENGTH"] = config.MAX_IMAGE_SIZE_MB * 1024 * 1024
 predictor = DamagePredictor()
 
 
+def get_local_ip() -> str:
+    """Finds the local network IPv4 address of this machine."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
+def generate_qr_code_base64(url: str) -> str:
+    """Generates an in-memory QR code PNG encoded as a base64 Data URI."""
+    try:
+        import qrcode
+        qr = qrcode.QRCode(
+            version=1,
+            box_size=6,
+            border=2,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#0a0f1d", back_color="#ffffff")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{encoded}"
+    except Exception as e:
+        logger.warning(f"Could not generate QR code: {e}")
+        return ""
+
+
 def numpy_to_base64_data_uri(img_array: np.ndarray, img_format: str = "JPEG") -> str:
     """Converts a numpy RGB array into a base64 Data URI."""
     pil_img = Image.fromarray(np.uint8(img_array))
@@ -52,9 +87,19 @@ def numpy_to_base64_data_uri(img_array: np.ndarray, img_format: str = "JPEG") ->
 
 @app.route("/", methods=["GET"])
 def index():
-    """Renders the main dashboard page."""
+    """Renders the main dashboard page with mobile access details."""
     model_ready = predictor.is_ready()
-    return render_template("index.html", model_ready=model_ready)
+    local_ip = get_local_ip()
+    mobile_url = f"http://{local_ip}:5000"
+    mobile_qr = generate_qr_code_base64(mobile_url)
+
+    return render_template(
+        "index.html",
+        model_ready=model_ready,
+        mobile_url=mobile_url,
+        mobile_qr=mobile_qr,
+        local_ip=local_ip,
+    )
 
 
 @app.route("/predict", methods=["POST"])
@@ -216,14 +261,18 @@ def open_browser():
 
 
 if __name__ == "__main__":
+    local_ip = get_local_ip()
     print("\n" + "=" * 65)
-    print("  VEHICLE DAMAGE DETECTION AI - FLASK LOCAL SERVER")
-    print("  Running at: http://127.0.0.1:5000")
-    print("  Model Status:", "Ready (MobileNetV2)" if predictor.is_ready() else "Not Found")
+    print("  VEHICLE DAMAGE DETECTION AI - FLASK MULTI-DEVICE SERVER")
+    print("=" * 65)
+    print(f"  Laptop Browser  : http://127.0.0.1:5000  (or localhost:5000)")
+    print(f"  Mobile Phone    : http://{local_ip}:5000  (iOS Safari & Android)")
+    print("  Model Status    :", "Ready (MobileNetV2)" if predictor.is_ready() else "Not Found")
+    print("  Note: Connect phone to the same Wi-Fi network as this laptop.")
     print("=" * 65 + "\n")
 
     # Launch browser only once in a timer thread
     threading.Timer(1.25, open_browser).start()
 
-    # Start Flask server
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    # Bind to 0.0.0.0 to accept connections from iPhones and Androids on the local network
+    app.run(host="0.0.0.0", port=5000, debug=False)
