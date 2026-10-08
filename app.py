@@ -1,15 +1,20 @@
 """
-Streamlit Web Application for AI Vehicle Damage Detection.
-Provides image upload, sample test images, 3-class classification, and Grad-CAM explainability.
-Deployable on Streamlit Community Cloud and local environments.
+Vehicle Damage Detection - Flask Application
+Serves a lightweight local web dashboard for vehicle damage analysis and Grad-CAM interpretability.
+No Streamlit, no cloud dependencies. Runs entirely offline on localhost.
 """
 
+import base64
+import io
+import logging
 from pathlib import Path
 import sys
-from io import BytesIO
+import threading
+import webbrowser
 
-from PIL import Image
-import streamlit as st
+from flask import Flask, jsonify, render_template, request
+import numpy as np
+from PIL import Image, ImageOps
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -19,336 +24,206 @@ if str(PROJECT_ROOT) not in sys.path:
 from src import config
 from src.predict import DamagePredictor
 
-# Page Setup
-st.set_page_config(
-    page_title="Vehicle Damage Detection AI",
-    page_icon="🚗",
-    layout="wide",
-    initial_sidebar_state="expanded",
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
 )
+logger = logging.getLogger("vehicle_damage_app")
 
-# Custom Styling
-st.markdown(
+# Initialize Flask app
+app = Flask(__name__)
+
+# Max upload payload configuration (10 MB)
+app.config["MAX_CONTENT_LENGTH"] = config.MAX_IMAGE_SIZE_MB * 1024 * 1024
+
+# Instantiate DamagePredictor once at startup
+predictor = DamagePredictor()
+
+
+def numpy_to_base64_data_uri(img_array: np.ndarray, img_format: str = "JPEG") -> str:
+    """Converts a numpy RGB array into a base64 Data URI."""
+    pil_img = Image.fromarray(np.uint8(img_array))
+    buffer = io.BytesIO()
+    pil_img.save(buffer, format=img_format, quality=90)
+    encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return f"data:image/{img_format.lower()};base64,{encoded}"
+
+
+@app.route("/", methods=["GET"])
+def index():
+    """Renders the main dashboard page."""
+    model_ready = predictor.is_ready()
+    return render_template("index.html", model_ready=model_ready)
+
+
+@app.route("/predict", methods=["POST"])
+def predict():
     """
-    <style>
-    .stApp {
-        max-width: 1250px;
-        margin: 0 auto;
-    }
-    .header-card {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: white;
-        padding: 2.2rem 2.5rem;
-        border-radius: 18px;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-    }
-    .header-title {
-        font-size: 2.3rem;
-        font-weight: 800;
-        margin-bottom: 0.5rem;
-        background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .header-subtitle {
-        color: #94a3b8;
-        font-size: 1.05rem;
-        max-width: 800px;
-        line-height: 1.5;
-    }
-    .result-card {
-        background-color: rgba(23, 32, 54, 0.7);
-        backdrop-filter: blur(12px);
-        border-radius: 14px;
-        padding: 1.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        margin-bottom: 1.5rem;
-    }
-    .action-box {
-        background-color: rgba(56, 189, 248, 0.08);
-        border-left: 4px solid #38bdf8;
-        padding: 1rem 1.25rem;
-        border-radius: 0 8px 8px 0;
-        margin-top: 1rem;
-    }
-    .low-confidence-box {
-        background-color: rgba(245, 158, 11, 0.1);
-        border-left: 4px solid #f59e0b;
-        padding: 1rem 1.25rem;
-        border-radius: 0 8px 8px 0;
-        margin-top: 1rem;
-        color: #fbbf24;
-    }
-    .instruction-card {
-        background-color: rgba(34, 197, 94, 0.1);
-        border: 1px solid rgba(34, 197, 94, 0.3);
-        border-radius: 14px;
-        padding: 1.75rem;
-        color: #86efac;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+    Accepts an uploaded car image, performs 3-class damage classification,
+    computes Grad-CAM heatmap overlay, and returns JSON results.
+    """
+    # 1. Verify model is loaded
+    if not predictor.is_ready():
+        return jsonify({
+            "success": False,
+            "error": "Model file not found. Please ensure 'models/vehicle_damage_model.keras' exists."
+        }), 503
 
+    # 2. Verify file presence
+    if "image" not in request.files:
+        return jsonify({
+            "success": False,
+            "error": "No image file provided. Please choose a car image to analyze."
+        }), 400
 
-@st.cache_resource(show_spinner=False)
-def get_cached_predictor() -> DamagePredictor:
-    """Instantiates and caches the predictor model to load only once."""
-    return DamagePredictor()
+    file = request.files["image"]
+    if not file or not file.filename or file.filename.strip() == "":
+        return jsonify({
+            "success": False,
+            "error": "No file selected. Please choose a car photo."
+        }), 400
 
-
-def render_sidebar(predictor: DamagePredictor) -> float:
-    """Renders the Streamlit sidebar with system status and controls."""
-    with st.sidebar:
-        st.header("⚙️ System Status")
-
-        # Model Status Indicator
-        if predictor.is_ready():
-            st.success("🟢 Model Ready: MobileNetV2 Active")
-        else:
-            st.warning("🟡 Model Missing: Please Train Model")
-
-        st.divider()
-
-        # How it works section
-        st.subheader("💡 How It Works")
-        st.markdown(
-            """
-            1. **Upload or Select Photo**: Provide a vehicle exterior photo.
-            2. **Neural Network**: Pre-trained **MobileNetV2** extracts deep visual features.
-            3. **Classification**: Evaluates probability across 3 classes:
-               - 🟢 **No Damage**
-               - 🟡 **Minor Damage**
-               - 🔴 **Severe Damage**
-            4. **Grad-CAM**: Computes activation heatmap overlay highlighting damage location.
-            """
-        )
-
-        st.divider()
-
-        # Heatmap Transparency Slider
-        st.subheader("🔥 Visual Overlay")
-        gradcam_alpha = st.slider(
-            "Grad-CAM Heatmap Blend (Alpha)",
-            min_value=0.1,
-            max_value=0.9,
-            value=0.4,
-            step=0.05,
-            help="Adjust the transparency of the Grad-CAM heatmap layer",
-        )
-
-        st.divider()
-        st.caption("Vehicle Damage Detection AI | MobileNetV2 + Grad-CAM")
-
-    return gradcam_alpha
-
-
-def main():
-    # Header Banner
-    st.markdown(
-        """
-        <div class="header-card">
-            <div class="header-title">🚗 Vehicle Damage Detection AI</div>
-            <div class="header-subtitle">
-                Automated vehicle exterior damage classification and explainable AI powered by MobileNetV2 Transfer Learning and Grad-CAM Heatmap overlays.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # 3. Validate file extension
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in config.ALLOWED_IMAGE_EXTENSIONS:
+        allowed_list = ", ".join(ext.upper().replace(".", "") for ext in config.ALLOWED_IMAGE_EXTENSIONS)
+        return jsonify({
+            "success": False,
+            "error": f"Invalid file format '{file_ext}'. Allowed formats: {allowed_list}."
+        }), 400
 
     try:
-        predictor = get_cached_predictor()
-    except Exception as e:
-        st.error(f"Error initializing predictor: {e}")
-        return
+        # 4. Read bytes and validate size
+        image_bytes = file.read()
+        if len(image_bytes) == 0:
+            return jsonify({
+                "success": False,
+                "error": "The uploaded file is empty. Please select a valid photo."
+            }), 400
 
-    gradcam_alpha = render_sidebar(predictor)
+        size_mb = len(image_bytes) / (1024 * 1024)
+        if size_mb > config.MAX_IMAGE_SIZE_MB:
+            return jsonify({
+                "success": False,
+                "error": f"File size ({size_mb:.1f} MB) exceeds maximum limit of {config.MAX_IMAGE_SIZE_MB} MB."
+            }), 400
 
-    # Missing model edge case handling
-    if not predictor.is_ready():
-        st.warning("⚠️ No Trained Model Found in `models/`")
-        st.markdown(
-            """
-            <div class="instruction-card">
-                <h3>🚀 Quick Training Instructions</h3>
-                <p>A trained model is required to perform live inferences. You can generate sample data and train the model in 1 minute:</p>
-                <ol>
-                    <li><b>Generate demo dataset:</b><br><code>python generate_dummy_data.py</code></li>
-                    <li><b>Train the model (1-2 epochs for testing):</b><br><code>python src/train.py --epochs 2 --fine-epochs 1</code></li>
-                    <li><b>Refresh this page</b> to start detecting vehicle damage!</li>
-                </ol>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
+        # 5. Open image with PIL and verify integrity
+        try:
+            raw_img = Image.open(io.BytesIO(image_bytes))
+            raw_img.verify()
+            pil_img = Image.open(io.BytesIO(image_bytes))
+        except Exception:
+            return jsonify({
+                "success": False,
+                "error": "Uploaded file is corrupted or not a readable image."
+            }), 400
 
-    # Main Grid Layout
-    col_left, col_right = st.columns([1, 1], gap="large")
+        # 6. Run prediction pipeline through DamagePredictor
+        result = predictor.predict(pil_img, gradcam_alpha=0.45)
 
-    with col_left:
-        st.subheader("📷 Vehicle Image Input")
+        # 7. Convert output images to base64 data URIs
+        original_b64 = numpy_to_base64_data_uri(result["original_rgb"])
+        gradcam_b64 = numpy_to_base64_data_uri(result["gradcam_overlay_rgb"])
 
-        input_mode = st.radio(
-            "Choose Image Source:",
-            ["Upload Your Photo", "Use Preloaded Demo Samples"],
-            horizontal=True,
-        )
+        # Determine badge type & styling
+        class_key = result["class_name"]
+        confidence = float(result["confidence"])
+        is_low_conf = confidence < config.CONFIDENCE_THRESHOLD
 
-        pil_image = None
-
-        if input_mode == "Use Preloaded Demo Samples":
-            sample_options = {
-                "Sample 1: Damaged Car (Collision impact)": config.SAMPLES_DIR / "damaged_car.jpg",
-                "Sample 2: Undamaged Car (Clean exterior)": config.SAMPLES_DIR / "undamaged_car.jpg",
-                "Sample 3: PNG with Alpha Transparency": config.SAMPLES_DIR / "car_alpha.png",
-                "Sample 4: Tiny Resolution (32x32 px)": config.SAMPLES_DIR / "tiny_car.jpg",
-                "Sample 5: Non-Car Image (Landscape)": config.SAMPLES_DIR / "non_car.jpg",
-            }
-            selected_sample = st.selectbox("Select Demo Sample:", list(sample_options.keys()))
-            sample_path = sample_options[selected_sample]
-
-            if sample_path.exists():
-                pil_image = Image.open(sample_path)
-                st.image(pil_image, caption=f"Selected: {selected_sample}", use_container_width=True)
-            else:
-                st.error("Sample image file not found.")
-                return
-
+        # Tailored one-line suggestions
+        if is_low_conf:
+            suggestion = "Low confidence - try a clearer photo."
+        elif class_key == "no_damage":
+            suggestion = "Vehicle exterior is intact — no body panel repairs required."
+        elif class_key == "minor_damage":
+            suggestion = "Paintless dent repair or cosmetic touch-up recommended."
+        elif class_key == "severe_damage":
+            suggestion = "Structural collision repair inspection and insurance appraisal recommended."
         else:
-            uploaded_file = st.file_uploader(
-                "Upload car photo (JPG, JPEG, PNG, WEBP, max 10MB)...",
-                type=["jpg", "jpeg", "png", "webp"],
-                help="Upload a clear photo of the car exterior or damaged region",
-            )
+            suggestion = result.get("action", "Further inspection recommended.")
 
-            if uploaded_file is not None:
-                # Check file size limit (10MB)
-                file_size_mb = uploaded_file.size / (1024 * 1024)
-                if file_size_mb > config.MAX_IMAGE_SIZE_MB:
-                    st.error(f"File size ({file_size_mb:.1f}MB) exceeds the maximum limit of {config.MAX_IMAGE_SIZE_MB}MB.")
-                    return
+        # Class display order for probability distribution
+        ordered_classes = [
+            ("no_damage", "No Damage", "#22c55e"),
+            ("minor_damage", "Minor Damage", "#f59e0b"),
+            ("severe_damage", "Severe Damage", "#ef4444"),
+        ]
 
-                try:
-                    file_bytes = uploaded_file.read()
-                    pil_image = Image.open(BytesIO(file_bytes))
-                    pil_image.load()
+        prob_list = []
+        raw_probs = result.get("probabilities", {})
+        for key, display_name, color in ordered_classes:
+            val = float(raw_probs.get(key, 0.0))
+            prob_list.append({
+                "key": key,
+                "label": display_name,
+                "value": round(val, 4),
+                "percentage": f"{val * 100:.1f}%",
+                "color": color,
+            })
 
-                    # Handle tiny images (< 32x32)
-                    if pil_image.width < config.MIN_IMAGE_DIMENSION or pil_image.height < config.MIN_IMAGE_DIMENSION:
-                        st.warning(f"Image resolution ({pil_image.width}x{pil_image.height}) is very small. Classification accuracy may be reduced.")
-
-                    st.image(pil_image, caption="Uploaded Image Preview", use_container_width=True)
-
-                except Exception as e:
-                    st.error(f"Invalid or corrupted image file: {e}")
-                    return
-            else:
-                st.info("👆 Upload a car photo or select a demo sample above to analyze damage.")
-                st.markdown(
-                    """
-                    **Supported Inspections:**
-                    - Scratches, scuffs, and shallow paint abrasions
-                    - Crushed bumpers and structural collision panels
-                    - Clean and undamaged vehicle verification
-                    """
-                )
-                return
-
-    with col_right:
-        st.subheader("🔍 Damage Diagnosis & Report")
-
-        with st.spinner("Analyzing damage features and computing Grad-CAM heatmap..."):
-            try:
-                result = predictor.predict(pil_image, gradcam_alpha=gradcam_alpha)
-            except Exception as e:
-                st.error(f"Analysis failed: {str(e)}")
-                return
-
-        badge_color = result["badge_color"]
-        display_name = result["display_name"]
-        confidence_pct = result["confidence"] * 100
-        is_low_confidence = result["is_low_confidence"]
-
-        # Classification Badge Card
-        st.markdown(
-            f"""
-            <div style="background-color: rgba(23, 32, 54, 0.85); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">AI Assessment</div>
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                    <span style="background-color: {badge_color}; color: white; padding: 0.4rem 1.2rem; border-radius: 9999px; font-weight: 800; font-size: 1.2rem;">
-                        {display_name}
-                    </span>
-                    <span style="font-size: 1.5rem; font-weight: 800; color: #f8fafc;">
-                        {confidence_pct:.1f}% Confidence
-                    </span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Plain-English Diagnostic Summary
-        if is_low_confidence:
-            st.markdown(
-                """
-                <div class="result-card">
-                    <h4 style="margin-top:0; color: #fbbf24;">⚠️ Low Confidence Verdict</h4>
-                    <p style="color: #fde68a;"><strong>Low confidence - try a clearer, well-lit photo of the car.</strong></p>
-                    <div class="low-confidence-box">
-                        <strong>💡 Suggestion:</strong> Ensure the car exterior is well lit, unobstructed, and centered in frame.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                f"""
-                <div class="result-card">
-                    <h4 style="margin-top:0; color: #38bdf8;">📋 Diagnostic Assessment</h4>
-                    <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;">{result['summary']}</p>
-                    <div class="action-box">
-                        <strong>💡 Recommended Next Step:</strong><br>
-                        <span style="color: #f8fafc; font-size: 0.95rem;">{result['action']}</span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        # Probability Bar Distribution for All 3 Classes
-        st.subheader("📊 Probability Breakdown (All 3 Classes)")
-        probs = result["probabilities"]
-        formatted_probs = {
-            config.CLASS_DETAILS.get(k, {}).get("display_name", k): round(v * 100, 1)
-            for k, v in probs.items()
+        response_data = {
+            "success": True,
+            "predicted_class": result["display_name"],
+            "class_key": class_key,
+            "badge_color": result["badge_color"],
+            "confidence": confidence,
+            "confidence_percentage": f"{confidence * 100:.1f}%",
+            "is_low_confidence": is_low_conf,
+            "low_confidence_notice": "Low confidence - try a clearer photo" if is_low_conf else None,
+            "suggestion": suggestion,
+            "probabilities": prob_list,
+            "original_image": original_b64,
+            "gradcam_image": gradcam_b64,
         }
-        st.bar_chart(formatted_probs, color="#38bdf8")
 
-    # Grad-CAM Heatmap Visual Explainability Section
-    st.divider()
-    st.subheader("🔥 Grad-CAM Visual Heatmap (Explainable AI)")
-    st.caption(
-        "Grad-CAM computes gradients at the final convolutional layer to visualize the spatial regions that triggered the model's damage verdict."
-    )
+        return jsonify(response_data)
 
-    g_col1, g_col2 = st.columns([1, 1], gap="medium")
+    except Exception as e:
+        logger.exception("Error processing prediction")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to analyze image: {str(e)}"
+        }), 500
 
-    with g_col1:
-        st.image(result["original_rgb"], caption="Original Vehicle Image", use_container_width=True)
 
-    with g_col2:
-        st.image(
-            result["gradcam_overlay_rgb"],
-            caption=f"Grad-CAM Heatmap Overlay (Blend Alpha = {gradcam_alpha})",
-            use_container_width=True,
-        )
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    """Handles requests exceeding the Flask content length limit."""
+    return jsonify({
+        "success": False,
+        "error": f"File is too large. Maximum allowed size is {config.MAX_IMAGE_SIZE_MB} MB."
+    }), 413
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"success": False, "error": "Endpoint not found."}), 404
+
+
+@app.errorhandler(500)
+def server_error(error):
+    return jsonify({"success": False, "error": "Internal server error."}), 500
+
+
+def open_browser():
+    """Opens localhost in user's default browser after a brief delay."""
+    try:
+        webbrowser.open("http://127.0.0.1:5000")
+    except Exception as e:
+        logger.warning(f"Could not open browser automatically: {e}")
 
 
 if __name__ == "__main__":
-    main()
+    print("\n" + "=" * 65)
+    print("  VEHICLE DAMAGE DETECTION AI - FLASK LOCAL SERVER")
+    print("  Running at: http://127.0.0.1:5000")
+    print("  Model Status:", "Ready (MobileNetV2)" if predictor.is_ready() else "Not Found")
+    print("=" * 65 + "\n")
+
+    # Launch browser only once in a timer thread
+    threading.Timer(1.25, open_browser).start()
+
+    # Start Flask server
+    app.run(host="127.0.0.1", port=5000, debug=False)

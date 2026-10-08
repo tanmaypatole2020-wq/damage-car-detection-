@@ -34,9 +34,10 @@ echo "[INFO] Installing requirements..."
 pip install --upgrade pip --quiet
 pip install -r requirements.txt --quiet
 
-# 5. Launch Streamlit Application
+# 5. Launch Flask Application
 echo "============================================================"
-echo "[SUCCESS] Launching Streamlit Web App..."
-echo "Open your browser at http://localhost:8501"
+echo "[SUCCESS] Launching Vehicle Damage AI Web App..."
+echo "Starting server at http://127.0.0.1:5000"
+echo "Browser will open automatically."
 echo "============================================================"
-streamlit run app.py
+python app.py

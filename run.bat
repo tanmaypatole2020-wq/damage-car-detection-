@@ -31,10 +31,11 @@ if %ERRORLEVEL% neq 0 (
     ".venv\Scripts\pip.exe" install -r requirements.txt
 )
 
-:: 3. Launch Streamlit Application
+:: 3. Launch Flask Application
 echo ============================================================
-echo [SUCCESS] Setup complete! Launching Streamlit Web App...
-echo Open your browser at http://localhost:8501
+echo [SUCCESS] Setup complete! Launching Vehicle Damage AI...
+echo Starting server at http://127.0.0.1:5000
+echo Browser will open automatically.
 echo ============================================================
-".venv\Scripts\streamlit.exe" run app.py
+".venv\Scripts\python.exe" app.py
 pause
