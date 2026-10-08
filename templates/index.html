@@ -51,7 +51,7 @@
             backdrop-filter: blur(16px);
             border: 1px solid var(--card-border);
             border-radius: 20px;
-            padding: 2.5rem;
+            padding: 2.2rem 2.5rem;
             margin-bottom: 2rem;
             box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
             display: flex;
@@ -116,19 +116,53 @@
             margin-bottom: 1.25rem;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            justify-content: space-between;
             color: var(--text-main);
         }
 
-        .card-title i {
+        /* Sample Buttons */
+        .samples-bar {
+            margin-bottom: 1.25rem;
+        }
+
+        .samples-bar label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sample-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .sample-btn {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sample-btn:hover {
+            border-color: var(--accent-primary);
             color: var(--accent-primary);
+            background: rgba(56, 189, 248, 0.08);
         }
 
         /* Upload Dropzone */
         .dropzone {
             border: 2px dashed rgba(56, 189, 248, 0.3);
             border-radius: 16px;
-            padding: 2.5rem 1.5rem;
+            padding: 2.2rem 1.5rem;
             text-align: center;
             background: rgba(15, 23, 42, 0.4);
             cursor: pointer;
@@ -143,9 +177,9 @@
         }
 
         .dropzone i {
-            font-size: 3rem;
+            font-size: 2.8rem;
             color: var(--accent-primary);
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         .dropzone p {
@@ -218,12 +252,12 @@
 
         /* Preview Area */
         .preview-box {
-            margin-top: 1.5rem;
+            margin-top: 1.25rem;
             border-radius: 14px;
             overflow: hidden;
             border: 1px solid var(--card-border);
             display: none;
-            max-height: 260px;
+            max-height: 250px;
         }
 
         .preview-box img {
@@ -422,15 +456,26 @@
                 </div>
 
                 <div class="card-title">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>Upload Car Image</span>
+                    <span><i class="fa-solid fa-cloud-arrow-up" style="color: var(--accent-primary);"></i> Vehicle Image Input</span>
+                </div>
+
+                <!-- Preloaded Demo Chips -->
+                <div class="samples-bar">
+                    <label>⚡ Or Try Demo Samples (1-Click):</label>
+                    <div class="sample-chips">
+                        <button class="sample-btn" onclick="loadSample('damaged_car')">💥 Damaged Car</button>
+                        <button class="sample-btn" onclick="loadSample('undamaged_car')">✨ Clean Car</button>
+                        <button class="sample-btn" onclick="loadSample('car_alpha')">🖼️ Transparent PNG</button>
+                        <button class="sample-btn" onclick="loadSample('tiny_car')">🔍 Tiny (32x32)</button>
+                        <button class="sample-btn" onclick="loadSample('non_car')">🌄 Non-Car</button>
+                    </div>
                 </div>
 
                 <div class="dropzone" id="dropzone">
                     <i class="fa-solid fa-image"></i>
                     <p style="font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">Click or Drag & Drop Car Image</p>
-                    <p>Supports JPG, JPEG, PNG (max 10MB)</p>
-                    <input type="file" id="fileInput" accept="image/jpeg, image/jpg, image/png">
+                    <p>Supports JPG, JPEG, PNG, WEBP (max 10MB)</p>
+                    <input type="file" id="fileInput" accept="image/jpeg, image/jpg, image/png, image/webp">
                 </div>
 
                 <div class="preview-box" id="previewBox">
@@ -453,13 +498,12 @@
             <!-- Right Panel: Results -->
             <div class="card" id="resultsCard">
                 <div class="card-title">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>AI Diagnostic Report</span>
+                    <span><i class="fa-solid fa-chart-pie" style="color: var(--accent-primary);"></i> AI Diagnostic Report</span>
                 </div>
 
                 <div id="placeholderState" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
                     <i class="fa-solid fa-car-side" style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                    <p>Upload a car photo and click <strong>Analyze Damage</strong> to view AI classification results and heatmap visualization.</p>
+                    <p>Upload a car photo or click any <strong>Demo Sample</strong> above to view AI classification results and heatmap visualization.</p>
                 </div>
 
                 <div id="resultsState" style="display: none;">
@@ -483,7 +527,7 @@
                     </div>
 
                     <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-main);">
-                        Class Probability Breakdown
+                        Class Probability Breakdown (All 3 Classes)
                     </div>
                     <div id="probabilitiesContainer"></div>
                 </div>
@@ -492,8 +536,7 @@
             <!-- Grad-CAM Visuals Row -->
             <div class="card gradcam-grid" id="gradcamSection">
                 <div class="card-title">
-                    <i class="fa-solid fa-eye"></i>
-                    <span>Grad-CAM Visual Focus Regions</span>
+                    <span><i class="fa-solid fa-eye" style="color: var(--accent-primary);"></i> Grad-CAM Visual Focus Regions</span>
                 </div>
                 <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
                     The heatmap highlights specific pixel regions in the car image that activated the neural network's damage decision.
@@ -545,6 +588,26 @@
         alphaSlider.addEventListener('input', (e) => {
             alphaVal.textContent = e.target.value;
         });
+
+        // 1-Click Demo Sample loader
+        async function loadSample(sampleName) {
+            loader.style.display = 'flex';
+            try {
+                const res = await fetch(`/api/sample/${sampleName}?alpha=${alphaSlider.value}`);
+                const data = await res.json();
+                loader.style.display = 'none';
+                if (!res.ok) {
+                    alert(data.error || 'Failed to load sample');
+                    return;
+                }
+                previewImg.src = data.original_image;
+                previewBox.style.display = 'block';
+                renderResults(data);
+            } catch (err) {
+                loader.style.display = 'none';
+                alert('Failed to connect to server.');
+            }
+        }
 
         // File selection handling
         fileInput.addEventListener('change', (e) => {
@@ -669,7 +732,7 @@
             imgHeatmap.src = data.gradcam_heatmap;
             imgOverlay.src = data.gradcam_overlay;
 
-            // Smooth scroll to results on mobile
+            // Smooth scroll to results
             gradcamSection.scrollIntoView({ behavior: 'smooth' });
         }
     </script>

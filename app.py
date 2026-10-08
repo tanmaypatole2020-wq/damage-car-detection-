@@ -1,6 +1,6 @@
 """
 Streamlit Web Application for AI Vehicle Damage Detection.
-Provides image upload, 3-class damage classification, confidence breakdown, and Grad-CAM explainability.
+Provides image upload, sample test images, 3-class classification, and Grad-CAM explainability.
 Deployable on Streamlit Community Cloud and local environments.
 """
 
@@ -31,9 +31,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .main {
-        background-color: #f8fafc;
-    }
     .stApp {
         max-width: 1250px;
         margin: 0 auto;
@@ -41,13 +38,14 @@ st.markdown(
     .header-card {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: white;
-        padding: 2rem 2.5rem;
-        border-radius: 16px;
+        padding: 2.2rem 2.5rem;
+        border-radius: 18px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
     }
     .header-title {
-        font-size: 2.2rem;
+        font-size: 2.3rem;
         font-weight: 800;
         margin-bottom: 0.5rem;
         background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
@@ -56,39 +54,39 @@ st.markdown(
     }
     .header-subtitle {
         color: #94a3b8;
-        font-size: 1rem;
+        font-size: 1.05rem;
         max-width: 800px;
         line-height: 1.5;
     }
     .result-card {
-        background-color: white;
+        background-color: rgba(23, 32, 54, 0.7);
+        backdrop-filter: blur(12px);
         border-radius: 14px;
         padding: 1.5rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         margin-bottom: 1.5rem;
     }
     .action-box {
-        background-color: #f8fafc;
-        border-left: 4px solid #3b82f6;
+        background-color: rgba(56, 189, 248, 0.08);
+        border-left: 4px solid #38bdf8;
         padding: 1rem 1.25rem;
         border-radius: 0 8px 8px 0;
         margin-top: 1rem;
     }
     .low-confidence-box {
-        background-color: #fffbeb;
+        background-color: rgba(245, 158, 11, 0.1);
         border-left: 4px solid #f59e0b;
         padding: 1rem 1.25rem;
         border-radius: 0 8px 8px 0;
         margin-top: 1rem;
-        color: #92400e;
+        color: #fbbf24;
     }
     .instruction-card {
-        background-color: #f0fdf4;
-        border: 1px solid #bbf7d0;
+        background-color: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
         border-radius: 14px;
         padding: 1.75rem;
-        color: #166534;
+        color: #86efac;
     }
     </style>
     """,
@@ -119,7 +117,7 @@ def render_sidebar(predictor: DamagePredictor) -> float:
         st.subheader("💡 How It Works")
         st.markdown(
             """
-            1. **Upload Photo**: Upload a car photo (JPG, PNG, WEBP).
+            1. **Upload or Select Photo**: Provide a vehicle exterior photo.
             2. **Neural Network**: Pre-trained **MobileNetV2** extracts deep visual features.
             3. **Classification**: Evaluates probability across 3 classes:
                - 🟢 **No Damage**
@@ -193,50 +191,76 @@ def main():
     col_left, col_right = st.columns([1, 1], gap="large")
 
     with col_left:
-        st.subheader("📷 Upload Vehicle Image")
-        uploaded_file = st.file_uploader(
-            "Upload car photo (JPG, JPEG, PNG, WEBP, max 10MB)...",
-            type=["jpg", "jpeg", "png", "webp"],
-            help="Upload a clear photo of the car exterior or damaged region",
+        st.subheader("📷 Vehicle Image Input")
+
+        input_mode = st.radio(
+            "Choose Image Source:",
+            ["Upload Your Photo", "Use Preloaded Demo Samples"],
+            horizontal=True,
         )
 
         pil_image = None
-        if uploaded_file is not None:
-            # Check file size limit (10MB)
-            file_size_mb = uploaded_file.size / (1024 * 1024)
-            if file_size_mb > config.MAX_IMAGE_SIZE_MB:
-                st.error(f"File size ({file_size_mb:.1f}MB) exceeds the maximum limit of {config.MAX_IMAGE_SIZE_MB}MB.")
+
+        if input_mode == "Use Preloaded Demo Samples":
+            sample_options = {
+                "Sample 1: Damaged Car (Collision impact)": config.SAMPLES_DIR / "damaged_car.jpg",
+                "Sample 2: Undamaged Car (Clean exterior)": config.SAMPLES_DIR / "undamaged_car.jpg",
+                "Sample 3: PNG with Alpha Transparency": config.SAMPLES_DIR / "car_alpha.png",
+                "Sample 4: Tiny Resolution (32x32 px)": config.SAMPLES_DIR / "tiny_car.jpg",
+                "Sample 5: Non-Car Image (Landscape)": config.SAMPLES_DIR / "non_car.jpg",
+            }
+            selected_sample = st.selectbox("Select Demo Sample:", list(sample_options.keys()))
+            sample_path = sample_options[selected_sample]
+
+            if sample_path.exists():
+                pil_image = Image.open(sample_path)
+                st.image(pil_image, caption=f"Selected: {selected_sample}", use_container_width=True)
+            else:
+                st.error("Sample image file not found.")
                 return
 
-            try:
-                # Open image using BytesIO stream
-                file_bytes = uploaded_file.read()
-                pil_image = Image.open(BytesIO(file_bytes))
-                pil_image.load()
-
-                # Handle tiny images (< 32x32)
-                if pil_image.width < config.MIN_IMAGE_DIMENSION or pil_image.height < config.MIN_IMAGE_DIMENSION:
-                    st.warning(f"Image resolution ({pil_image.width}x{pil_image.height}) is very small. Classification accuracy may be reduced.")
-
-                st.image(pil_image, caption="Uploaded Image Preview", use_container_width=True)
-
-            except Exception as e:
-                st.error(f"Invalid or corrupted image file: {e}")
-                return
         else:
-            st.info("👆 Upload a car photo above to begin automated damage analysis.")
-            st.markdown(
-                """
-                **Evaluation Supported:**
-                - Scratches, scuffs, and small body dents
-                - Bumper cracks and side panel impacts
-                - Clear/undamaged vehicle verification
-                """
+            uploaded_file = st.file_uploader(
+                "Upload car photo (JPG, JPEG, PNG, WEBP, max 10MB)...",
+                type=["jpg", "jpeg", "png", "webp"],
+                help="Upload a clear photo of the car exterior or damaged region",
             )
-            return
+
+            if uploaded_file is not None:
+                # Check file size limit (10MB)
+                file_size_mb = uploaded_file.size / (1024 * 1024)
+                if file_size_mb > config.MAX_IMAGE_SIZE_MB:
+                    st.error(f"File size ({file_size_mb:.1f}MB) exceeds the maximum limit of {config.MAX_IMAGE_SIZE_MB}MB.")
+                    return
+
+                try:
+                    file_bytes = uploaded_file.read()
+                    pil_image = Image.open(BytesIO(file_bytes))
+                    pil_image.load()
+
+                    # Handle tiny images (< 32x32)
+                    if pil_image.width < config.MIN_IMAGE_DIMENSION or pil_image.height < config.MIN_IMAGE_DIMENSION:
+                        st.warning(f"Image resolution ({pil_image.width}x{pil_image.height}) is very small. Classification accuracy may be reduced.")
+
+                    st.image(pil_image, caption="Uploaded Image Preview", use_container_width=True)
+
+                except Exception as e:
+                    st.error(f"Invalid or corrupted image file: {e}")
+                    return
+            else:
+                st.info("👆 Upload a car photo or select a demo sample above to analyze damage.")
+                st.markdown(
+                    """
+                    **Supported Inspections:**
+                    - Scratches, scuffs, and shallow paint abrasions
+                    - Crushed bumpers and structural collision panels
+                    - Clean and undamaged vehicle verification
+                    """
+                )
+                return
 
     with col_right:
-        st.subheader("🔍 Damage Analysis & Diagnosis")
+        st.subheader("🔍 Damage Diagnosis & Report")
 
         with st.spinner("Analyzing damage features and computing Grad-CAM heatmap..."):
             try:
@@ -246,8 +270,6 @@ def main():
                 return
 
         badge_color = result["badge_color"]
-        bg_color = result["bg_color"]
-        border_color = result["border_color"]
         display_name = result["display_name"]
         confidence_pct = result["confidence"] * 100
         is_low_confidence = result["is_low_confidence"]
@@ -255,13 +277,13 @@ def main():
         # Classification Badge Card
         st.markdown(
             f"""
-            <div style="background-color: {bg_color}; border: 2px solid {border_color}; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">AI Assessment</div>
+            <div style="background-color: rgba(23, 32, 54, 0.85); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
+                <div style="font-size: 0.85rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">AI Assessment</div>
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                    <span style="background-color: {badge_color}; color: white; padding: 0.4rem 1.1rem; border-radius: 9999px; font-weight: 800; font-size: 1.2rem;">
+                    <span style="background-color: {badge_color}; color: white; padding: 0.4rem 1.2rem; border-radius: 9999px; font-weight: 800; font-size: 1.2rem;">
                         {display_name}
                     </span>
-                    <span style="font-size: 1.5rem; font-weight: 800; color: #1e293b;">
+                    <span style="font-size: 1.5rem; font-weight: 800; color: #f8fafc;">
                         {confidence_pct:.1f}% Confidence
                     </span>
                 </div>
@@ -275,8 +297,8 @@ def main():
             st.markdown(
                 """
                 <div class="result-card">
-                    <h4 style="margin-top:0; color: #b45309;">⚠️ Low Confidence Verdict</h4>
-                    <p style="color: #78350f;"><strong>Low confidence - try a clearer, well-lit photo of the car.</strong></p>
+                    <h4 style="margin-top:0; color: #fbbf24;">⚠️ Low Confidence Verdict</h4>
+                    <p style="color: #fde68a;"><strong>Low confidence - try a clearer, well-lit photo of the car.</strong></p>
                     <div class="low-confidence-box">
                         <strong>💡 Suggestion:</strong> Ensure the car exterior is well lit, unobstructed, and centered in frame.
                     </div>
@@ -288,11 +310,11 @@ def main():
             st.markdown(
                 f"""
                 <div class="result-card">
-                    <h4 style="margin-top:0; color: #1e293b;">📋 Diagnostic Assessment</h4>
-                    <p style="color: #334155; font-size: 0.95rem; line-height: 1.5;">{result['summary']}</p>
+                    <h4 style="margin-top:0; color: #38bdf8;">📋 Diagnostic Assessment</h4>
+                    <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;">{result['summary']}</p>
                     <div class="action-box">
                         <strong>💡 Recommended Next Step:</strong><br>
-                        <span style="color: #1e293b; font-size: 0.95rem;">{result['action']}</span>
+                        <span style="color: #f8fafc; font-size: 0.95rem;">{result['action']}</span>
                     </div>
                 </div>
                 """,
@@ -306,7 +328,7 @@ def main():
             config.CLASS_DETAILS.get(k, {}).get("display_name", k): round(v * 100, 1)
             for k, v in probs.items()
         }
-        st.bar_chart(formatted_probs, color="#3b82f6")
+        st.bar_chart(formatted_probs, color="#38bdf8")
 
     # Grad-CAM Heatmap Visual Explainability Section
     st.divider()

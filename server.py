@@ -75,7 +75,8 @@ def predict_api():
                 "class_name": result["class_name"],
                 "display_name": result["display_name"],
                 "confidence": result["confidence"],
-                "confidence_percentage": f"{result['confidence'] * 100:.1f}%",
+                "confidence_percentage": result["confidence_percentage"],
+                "is_low_confidence": result["is_low_confidence"],
                 "probabilities": result["probabilities"],
                 "badge_color": result["badge_color"],
                 "bg_color": result["bg_color"],
@@ -91,6 +92,49 @@ def predict_api():
     except Exception as e:
         logging.error(f"Prediction failed: {e}")
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
+
+
+@app.route("/api/sample/<sample_name>", methods=["GET"])
+def sample_predict_api(sample_name):
+    """API endpoint to run prediction directly on preloaded sample images."""
+    if not predictor.is_ready():
+        return jsonify({"error": "Model is not loaded."}), 400
+
+    sample_file = config.SAMPLES_DIR / f"{sample_name}.jpg"
+    if not sample_file.exists():
+        sample_file = config.SAMPLES_DIR / f"{sample_name}.png"
+    if not sample_file.exists():
+        return jsonify({"error": f"Sample image '{sample_name}' not found."}), 404
+
+    try:
+        alpha = float(request.args.get("alpha", 0.4))
+        result = predictor.predict(sample_file, gradcam_alpha=alpha)
+
+        original_b64 = numpy_to_base64(result["original_rgb"])
+        overlay_b64 = numpy_to_base64(result["gradcam_overlay_rgb"])
+        heatmap_b64 = numpy_to_base64(result["gradcam_heatmap_rgb"])
+
+        return jsonify(
+            {
+                "status": "success",
+                "class_name": result["class_name"],
+                "display_name": result["display_name"],
+                "confidence": result["confidence"],
+                "confidence_percentage": result["confidence_percentage"],
+                "is_low_confidence": result["is_low_confidence"],
+                "probabilities": result["probabilities"],
+                "badge_color": result["badge_color"],
+                "bg_color": result["bg_color"],
+                "severity": result["severity"],
+                "summary": result["summary"],
+                "action": result["action"],
+                "original_image": original_b64,
+                "gradcam_overlay": overlay_b64,
+                "gradcam_heatmap": heatmap_b64,
+            }
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

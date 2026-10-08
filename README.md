@@ -1,6 +1,6 @@
 # 🚗 Vehicle Damage Detection AI
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=tanmaypatole2020-wq/damage-car-detection-&branch=main&mainModule=app.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![TensorFlow: 2.x](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://tensorflow.org/)
@@ -13,9 +13,10 @@ An end-to-end, production-ready Deep Learning and Computer Vision application th
 
 | Web Application Dashboard | Grad-CAM Explainability |
 | :---: | :---: |
-| *Modern Streamlit interface with drag & drop upload, dynamic badges, and confidence metrics* | *Heatmap overlay highlighting damaged body panel regions* |
+| *Modern Streamlit interface with 1-click demo samples, drag & drop upload, dynamic badges, and confidence metrics* | *Heatmap overlay highlighting damaged body panel regions* |
 
-> 🔗 **Live Demo**: [Deploy on Streamlit Community Cloud](https://share.streamlit.io/) *(Placeholder - connect this repository to deploy instantly)*
+> 🚀 **Direct One-Click Live Deploy Link**:  
+> 👉 **[Deploy Live on Streamlit Cloud](https://share.streamlit.io/deploy?repository=tanmaypatole2020-wq/damage-car-detection-&branch=main&mainModule=app.py)**
 
 ---
 
